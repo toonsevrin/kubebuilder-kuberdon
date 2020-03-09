@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
