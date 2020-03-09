@@ -1,0 +1,7 @@
+apiVersion: kuberdon.kuberty.io/v1beta1
+kind: Kuberdon
+metadata:
+  name: kuberdon-sample
+spec:
+  # Add fields here
+  foo: bar

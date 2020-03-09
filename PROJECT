@@ -1,3 +1,7 @@
 domain: kuberty.io
 repo: k8s.io/kubernetes
+resources:
+- group: kuberdon
+  kind: Kuberdon
+  version: v1beta1
 version: "2"

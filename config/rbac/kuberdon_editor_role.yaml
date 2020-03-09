@@ -1,0 +1,24 @@
+# permissions for end users to edit kuberdons.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kuberdon-editor-role
+rules:
+- apiGroups:
+  - kuberdon.kuberty.io
+  resources:
+  - kuberdons
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kuberdon.kuberty.io
+  resources:
+  - kuberdons/status
+  verbs:
+  - get
