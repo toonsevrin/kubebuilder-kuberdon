@@ -1,17 +1,27 @@
 /*
 
+MIT License
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Copyright (c) 2020 kuberty
 
-    http://www.apache.org/licenses/LICENSE-2.0
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 */
 
 package v1beta1
@@ -20,44 +30,67 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// KuberdonSpec defines the desired state of Kuberdon
-type KuberdonSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+// RegistrySpec defines the desired state of the registry deployment.
+type RegistrySpec struct {
 
-	// Foo is an example field of Kuberdon. Edit Kuberdon_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:printcolumn:name="Secret",type=string,JSONPath=`.spec.secret`
+
+	// Secret defines the NamespacedName (eg. namespace/name or name for the default namespace) of the secret to deploy.
+	// Todo: Add validation to this field according to https://kubernetes.io/docs/concepts/overview/working-with-objects/names/ for the namespace and name (using regex)
+	Secret string `json:"secret"`
+
+	//The namespaces which the secret should be deployed to.
+	Namespaces []NamespaceFilter `json:"namespaces"`
 }
 
-// KuberdonStatus defines the observed state of Kuberdon
-type KuberdonStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+type NamespaceFilter struct {
+	//The (regex) filter for the namespace name
+	Name string `json:"name"`
 }
 
+
+// State values:
+const (
+	// The registry secret is deployed to all relevant service accounts
+	SyncedState State = "Synced"
+	// The source secret was not found
+	secretNotFoundState State = "ErrorSecretNotFound"
+
+)
+
+// Describes the state of the resource
+// +kubebuilder:validation:Enum=Synced;ErrorSecretNotFound
+type State string
+
+// RegistryStatus defines the observed state of Kuberdon.
+type RegistryStatus struct {
+	State State
+
+}
+// +genclient:nonNamespaced
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // Kuberdon is the Schema for the kuberdons API
-type Kuberdon struct {
+type Registry struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   KuberdonSpec   `json:"spec,omitempty"`
-	Status KuberdonStatus `json:"status,omitempty"`
+	Spec   RegistrySpec   `json:"spec,omitempty"`
+	Status RegistryStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
 // KuberdonList contains a list of Kuberdon
-type KuberdonList struct {
+type RegistryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Kuberdon `json:"items"`
+	Items           []Registry `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Kuberdon{}, &KuberdonList{})
+	SchemeBuilder.Register(&Registry{}, &RegistryList{})
 }
