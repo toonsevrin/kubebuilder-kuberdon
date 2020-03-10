@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-
 // RegistrySpec defines the desired state of the registry deployment (it defines the namespaces to deploy the secret to)
 type RegistrySpec struct {
 
@@ -42,7 +41,7 @@ type RegistrySpec struct {
 	Secret string `json:"secret"`
 
 	//The namespaces to which the secret should be deployed to. The rules of the highest (lowest index) filter apply to the namespace (if a namespace matches multiple filters)
-	Namespaces []NamespaceFilter `json:"namespaces"`
+	Namespaces []NamespaceFilter `json:"namespaces,omitempty"`
 }
 
 type NamespaceFilter struct {
@@ -50,14 +49,12 @@ type NamespaceFilter struct {
 	Name string `json:"name"`
 }
 
-
 // State values:
 const (
 	// The registry secret is deployed to all relevant service accounts
 	SyncedState State = "Synced"
 	// The source secret was not found
 	secretNotFoundState State = "ErrorSecretNotFound"
-
 )
 
 // Describes the state of the resource
@@ -66,9 +63,9 @@ type State string
 
 // RegistryStatus defines the observed state of Kuberdon.
 type RegistryStatus struct {
-	State State
-
+	State State `json:"state,omitempty"` // Should I default this to "Unknown" and drop the omitempty?
 }
+
 // +genclient:nonNamespaced
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
