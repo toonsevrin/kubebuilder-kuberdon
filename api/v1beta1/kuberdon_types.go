@@ -31,7 +31,7 @@ import (
 )
 
 
-// RegistrySpec defines the desired state of the registry deployment.
+// RegistrySpec defines the desired state of the registry deployment (it defines the namespaces to deploy the secret to)
 type RegistrySpec struct {
 
 	// +kubebuilder:validation:Required
@@ -41,7 +41,7 @@ type RegistrySpec struct {
 	// Todo: Add validation to this field according to https://kubernetes.io/docs/concepts/overview/working-with-objects/names/ for the namespace and name (using regex)
 	Secret string `json:"secret"`
 
-	//The namespaces which the secret should be deployed to.
+	//The namespaces to which the secret should be deployed to.
 	Namespaces []NamespaceFilter `json:"namespaces"`
 }
 
