@@ -41,7 +41,7 @@ type RegistrySpec struct {
 	// Todo: Add validation to this field according to https://kubernetes.io/docs/concepts/overview/working-with-objects/names/ for the namespace and name (using regex)
 	Secret string `json:"secret"`
 
-	//The namespaces to which the secret should be deployed to.
+	//The namespaces to which the secret should be deployed to. The rules of the highest (lowest index) filter apply to the namespace (if a namespace matches multiple filters)
 	Namespaces []NamespaceFilter `json:"namespaces"`
 }
 
