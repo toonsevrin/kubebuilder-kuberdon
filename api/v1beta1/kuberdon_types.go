@@ -63,6 +63,8 @@ type State string
 
 // RegistryStatus defines the observed state of Kuberdon.
 type RegistryStatus struct {
+	// An informative message regarding the state
+	Message string `json:"message,omitempty"`
 	State State `json:"state,omitempty"` // Should I default this to "Unknown" and drop the omitempty?
 }
 
