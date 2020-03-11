@@ -83,7 +83,7 @@ jobs:
         tar -xf kustomize_v3.5.4_linux_amd64.tar.gz
         sudo chmod +x kustomize
         sudo mv kustomize /usr/local/kustomize
-    - name: Build
+    - name: Test
       run: | 
         export GOPATH=$PWD/staging
         cd staging/src/github.com/kuberty/kuberdon/
