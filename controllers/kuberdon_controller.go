@@ -48,6 +48,6 @@ func (r *KuberdonReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *KuberdonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kuberdonv1beta1.Kuberdon{}).
+		For(&kuberdonv1beta1.Registry{}).
 		Complete(r)
 }
