@@ -33,12 +33,14 @@ jobs:
         echo "a8ffea619f8d6e6c9fab2df8543cf0912420568e3979f44340a7613de5944141 -" > kubebuildersum.txt
         curl -sfL https://github.com/kubernetes-sigs/kubebuilder/releases/download/v2.3.0/kubebuilder_2.3.0_linux_amd64.tar.gz | tee kubebuilder_2.3.0_linux_amd64.tar.gz | sha256sum -c kubebuildersum.txt
         tar -xf kubebuilder_2.3.0_linux_amd64.tar.gz
-        mv kubebuilder_2.3.0_linux_amd64 /usr/local/kubebuilder
+        sudo chmod +x kubebuilder_2.3.0_linux_amd64
+        sudo mv kubebuilder_2.3.0_linux_amd64 /usr/local/kubebuilder
         echo "Installing kustomize..."
         echo "5cdeb2af81090ad428e3a94b39779b3e477e2bc946be1fe28714d1ca28502f6a -" > kustomize.txt
         curl -sfL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv3.5.4/kustomize_v3.5.4_linux_amd64.tar.gz | tee kustomize_v3.5.4_linux_amd64.tar.gz | sha256sum -c kustomize.txt
         tar -xf kustomize_v3.5.4_linux_amd64.tar.gz
-        mv kustomize /usr/local/kustomize
+        sudo chmod +x kustomize
+        sudo mv kustomize /usr/local/kustomize
     - name: Build
       run: | 
         export GOPATH=$PWD/staging
@@ -73,12 +75,14 @@ jobs:
         echo "a8ffea619f8d6e6c9fab2df8543cf0912420568e3979f44340a7613de5944141 -" > kubebuildersum.txt
         curl -sfL https://github.com/kubernetes-sigs/kubebuilder/releases/download/v2.3.0/kubebuilder_2.3.0_linux_amd64.tar.gz | tee kubebuilder_2.3.0_linux_amd64.tar.gz | sha256sum -c kubebuildersum.txt
         tar -xf kubebuilder_2.3.0_linux_amd64.tar.gz
-        mv kubebuilder_2.3.0_linux_amd64 /usr/local/kubebuilder
+        sudo chmod +x kubebuilder_2.3.0_linux_amd64
+        sudo mv kubebuilder_2.3.0_linux_amd64 /usr/local/kubebuilder
         echo "Installing kustomize..."
         echo "5cdeb2af81090ad428e3a94b39779b3e477e2bc946be1fe28714d1ca28502f6a -" > kustomize.txt
         curl -sfL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv3.5.4/kustomize_v3.5.4_linux_amd64.tar.gz | tee kustomize_v3.5.4_linux_amd64.tar.gz | sha256sum -c kustomize.txt
         tar -xf kustomize_v3.5.4_linux_amd64.tar.gz
-        mv kustomize /usr/local/kustomize
+        sudo chmod +x kustomize
+        sudo mv kustomize /usr/local/kustomize
     - name: Build
       run: | 
         export GOPATH=$PWD/staging
