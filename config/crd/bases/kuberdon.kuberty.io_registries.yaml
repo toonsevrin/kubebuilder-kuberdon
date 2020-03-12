@@ -57,11 +57,20 @@ spec:
                 for the namespace and name (using regex)'
               type: string
           required:
-          - namespaces
           - secret
           type: object
         status:
           description: RegistryStatus defines the observed state of Kuberdon.
+          properties:
+            message:
+              description: An informative message regarding the state
+              type: string
+            state:
+              description: Describes the state of the resource
+              enum:
+              - Synced
+              - ErrorSecretNotFound
+              type: string
           type: object
       type: object
   version: v1beta1
