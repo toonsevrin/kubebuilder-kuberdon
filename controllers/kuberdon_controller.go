@@ -71,10 +71,6 @@ func (r *KuberdonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return err
 		}
 
-		for _, index := range watcher.GetIndices(mgr) {
-			mgr.GetFieldIndexer().IndexField(index.Obj, index.Field, index.ExtractValue)
-		}
-
 		builder = builder.Watches(&source.Informer{Informer:informer}, &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(watcher.ToRequestsFunc)})
 	}
 
@@ -83,6 +79,11 @@ func (r *KuberdonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func addWatcherToMgr(mgr ctrl.Manager, clientSet *kubernetes.Clientset, watcher watchers.Watcher) (cache.Informer, error) {
 	informerFactory, informer := watcher.Informer(clientSet)
+
+	for _, index := range watcher.GetIndices(mgr) {
+		mgr.GetFieldIndexer().IndexField(index.Obj, index.Field, index.ExtractValue)
+	}
+
 	return informer, mgr.Add(manager.RunnableFunc(func(s <-chan struct{}) error {
 		informerFactory.Start(s)
 		<- s
