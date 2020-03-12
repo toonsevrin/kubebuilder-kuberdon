@@ -18,13 +18,18 @@ package controllers
 
 import (
 	"context"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/go-logr/logr"
+	kuberdonv1beta1 "github.com/kuberty/kuberdon/api/v1beta1"
+	"github.com/kuberty/kuberdon/controllers/watchers"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	kuberdonv1beta1 "k8s.io/kubernetes/api/v1beta1"
 )
 
 // KuberdonReconciler reconciles a Kuberdon object
@@ -46,8 +51,41 @@ func (r *KuberdonReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
+
+func getWatchers( client client.Client, log logr.Logger) []watchers.Watcher {
+	return []watchers.Watcher {
+		watchers.MasterSecretWatcher{Client: client, Log:log},
+	}
+}
+
 func (r *KuberdonReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&kuberdonv1beta1.Registry{}).
-		Complete(r)
+	generatedClient := kubernetes.NewForConfigOrDie(mgr.GetConfig())
+
+	builder := ctrl.NewControllerManagedBy(mgr).
+				For(&kuberdonv1beta1.Registry{})
+
+	watchers := getWatchers(r, r.Log)
+	for _, watcher := range watchers {
+		informer, err := addWatcherToMgr(mgr, generatedClient, watcher)
+		if err != nil {
+			return err
+		}
+
+		for _, index := range watcher.GetIndices(mgr) {
+			mgr.GetFieldIndexer().IndexField(index.Obj, index.Field, index.ExtractValue)
+		}
+
+		builder = builder.Watches(&source.Informer{Informer:informer}, &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(watcher.ToRequestsFunc)})
+	}
+
+	return builder.Complete(r)
+}
+
+func addWatcherToMgr(mgr ctrl.Manager, clientSet *kubernetes.Clientset, watcher watchers.Watcher) (cache.Informer, error) {
+	informerFactory, informer := watcher.Informer(clientSet)
+	return informer, mgr.Add(manager.RunnableFunc(func(s <-chan struct{}) error {
+		informerFactory.Start(s)
+		<- s
+		return nil
+	}))
 }

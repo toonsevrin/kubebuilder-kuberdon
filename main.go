@@ -26,8 +26,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	kuberdonv1beta1 "k8s.io/kubernetes/api/v1beta1"
-	"k8s.io/kubernetes/controllers"
+	kuberdonv1beta1 "github.com/kuberty/kuberdon/api/v1beta1"
+	"github.com/kuberty/kuberdon/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
