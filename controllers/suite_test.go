@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	kuberdonv1beta1 "k8s.io/kubernetes/api/v1beta1"
+	kuberdonv1beta1 "github.com/kuberty/kuberdon/api/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
