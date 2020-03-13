@@ -22,15 +22,16 @@ import (
 	"time"
 )
 
+//Todo: Split these up into a globals file or something
 const (
-	ownedByKuberdonLabel   = "kuberdon.kuberty.io"
-	ownedByKuberdonValue   = "true"
-	secretField            = "spec.secret"
-	dockerconfigSecretType = "kubernetes.io/dockerconfigjson"
+	OwnedByKuberdonLabel   = "kuberdon.kuberty.io"
+	OwnedByKuberdonValue   = "true"
+	SecretField            = "spec.secret"
+	DockerconfigSecretType = "kubernetes.io/dockerconfigjson"
 
-	owningControllerField = ".metadata.controller"
+	OwningControllerField = ".metadata.controller"
 
-	registryKind = "Registry"
+	RegistryKind = "Registry"
 )
 
 var apiGVStr = v1beta1.GroupVersion.String()
@@ -57,8 +58,8 @@ type MasterSecretWatcher struct {
 // The master secret informer listens to all Registry (type: kubernetes.io/dockerconfigjson) secrets over all namespaces.
 // It excludes registries with the label "kuberdon.kuberty.io: true"
 func (s MasterSecretWatcher) Informer(kubernetesClientSet *kubernetes.Clientset) (informers.SharedInformerFactory, cache.Informer) {
-	fieldSelector := fields.Set(map[string]string{"type": dockerconfigSecretType}).String()
-	labelSelector := ownedByKuberdonLabel + " != " + ownedByKuberdonValue
+	fieldSelector := fields.Set(map[string]string{"type": DockerconfigSecretType}).String()
+	labelSelector := OwnedByKuberdonLabel + " != " + OwnedByKuberdonValue
 	tweakListOptions := func(opts *metav1.ListOptions) {
 		opts.FieldSelector = fieldSelector
 		opts.LabelSelector = labelSelector
@@ -76,7 +77,7 @@ func (s MasterSecretWatcher) ToRequestsFunc(mapObject handler.MapObject) []recon
 	// List all registries with the secret in their spec
 	var registries v1beta1.RegistryList
 
-	if err := s.Client.List(ctx, &registries, client.MatchingFields{secretField: secretNamespacedName}); err != nil {
+	if err := s.Client.List(ctx, &registries, client.MatchingFields{SecretField: secretNamespacedName}); err != nil {
 		s.Log.Error(err, "unable to list registries")
 		return []reconcile.Request{}
 	}
@@ -93,7 +94,7 @@ func (s MasterSecretWatcher) GetIndices(mgr ctrl.Manager) []Index {
 	return []Index{
 		Index{
 			Obj:   &v1beta1.Registry{},
-			Field: secretField,
+			Field: SecretField,
 			ExtractValue: func(obj runtime.Object) []string {
 				registry := obj.(*v1beta1.Registry)
 				return []string{registry.Spec.Secret}
@@ -110,8 +111,8 @@ type ChildSecretWatcher struct {
 }
 
 func (s ChildSecretWatcher) Informer(kubernetesClientSet *kubernetes.Clientset) (informers.SharedInformerFactory, cache.Informer) {
-	fieldSelector := fields.Set(map[string]string{"type": dockerconfigSecretType}).String()
-	labelSelector := labels.Set(map[string]string{ownedByKuberdonLabel: ownedByKuberdonValue}).String()
+	fieldSelector := fields.Set(map[string]string{"type": DockerconfigSecretType}).String()
+	labelSelector := labels.Set(map[string]string{OwnedByKuberdonLabel: OwnedByKuberdonValue}).String()
 	tweakListOptions := func(opts *metav1.ListOptions) {
 		opts.FieldSelector = fieldSelector
 		opts.LabelSelector = labelSelector
@@ -139,7 +140,7 @@ func (s ChildSecretWatcher) GetIndices(mgr ctrl.Manager) []Index {
 	return []Index{
 		Index{
 			Obj:   &v1.Secret{},
-			Field: owningControllerField,
+			Field: OwningControllerField,
 			ExtractValue: func(obj runtime.Object) []string {
 				secret := obj.(*v1.Secret)
 

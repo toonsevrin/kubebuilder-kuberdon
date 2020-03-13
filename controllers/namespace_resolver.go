@@ -6,7 +6,7 @@ import (
 )
 
 type NamespaceResolver interface {
-	resolve(allNamespaces []string, filter v1beta1.NamespaceFilter) []string
+	resolve(allNamespaces []string, filters []v1beta1.NamespaceFilter) ([]string, int)
 }
 
 type DefaultNamespaceResolver struct {}
@@ -16,7 +16,7 @@ type DefaultNamespaceResolver struct {}
 	Messy implementation to handle the namespace resolving:
 	The reason this implementation is so long is to allow GLOBs ("*test*") instead of just regex (".*test.*")
  */
-func (s *DefaultNamespaceResolver) resolve(allNamespaces []string, filters []v1beta1.NamespaceFilter) ([]string, int){
+func (s DefaultNamespaceResolver) resolve(allNamespaces []string, filters []v1beta1.NamespaceFilter) ([]string, int){
 	faultyRegex := 0
 	deployToNamespaces := map[string]bool{}
 	namespaces := []string{}

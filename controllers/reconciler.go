@@ -5,55 +5,86 @@ import (
 	"fmt"
 	"github.com/kuberty/kuberdon/api/v1beta1"
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
-type State struct {
-	MasterSecret *v1.Secret
-	ChildSecrets []*v1.Secret
-	Namespaces   []*v1.Namespace
+const (
+	childSecretNameFormat = "kuberty-%s-%s"
+	nameField = "metadata.name"
+	defaultServiceAccountName = "default"
+)
+
+var (
+	faultyNamespaceRegexError ="BadNamespaceFilterError"
+	faultyNamespaceRegexMessage = "%v namespaceFilters are not regex."
+	resolver = DefaultNamespaceResolver{}
+)
+type FaultyNamespaceRegexError struct {
+	Msg string// description of error
+	Err string
+}
+func (s FaultyNamespaceRegexError) Error() string {
+	return s.Err
 }
 
-type NamespaceState struct{
-	Namespace *v1.Namespace
-	ServiceAcccount *v1.ServiceAccount
+type State struct {
+	MasterSecret v1.Secret
+	Namespaces   map[string]*NamespaceState // key is the namespace, value is the child state in that namespace
+}
+
+// A small struct we use to reduce the amount of parameters in our getActualState and getDesiredState
+type Reconciliation struct {
+	Client     client.Client
+	Context    context.Context
+	Registry   v1beta1.Registry
+	Namespaces  v1.NamespaceList
+}
+type NamespaceState struct {
+	ChildSecret     v1.Secret         // Not always present
+	ServiceAcccount v1.ServiceAccount // Should always be present
 }
 
 func (r *KuberdonReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("testresource", req.NamespacedName)
 
+	reconciliation := &Reconciliation{Client: r.Client, Context: ctx}
+
 	// Fetch the registry
-	var registry v1beta1.Registry
-	if err := r.Client.Get(ctx, req.NamespacedName, &registry); err != nil {
-		log.Error(err, "Unable to fetch TestResource")
+	if err := r.Client.Get(ctx, req.NamespacedName, &reconciliation.Registry); err != nil {
+		log.Error(err, "Unable to fetch Registry")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	//fetch the actual state
+	//fetch all namespaces
+	if err := r.Client.List(ctx, &reconciliation.Namespaces); err != nil {
+		log.Error(err, "Unable to fetch namespaces")
+		return ctrl.Result{}, err
+	}
 
+	//fetch the actual state
+	actualState, err := reconciliation.getActualState()
+	if err != nil {
+		log.Error(err, "Unable to fetch Actual state")
+	}
 	//fetch the desired state
+	desiredState, err := reconciliation.getDesiredState(actualState, resolver)
+	if err != nil {
+		log.Error(err, "Unable to fetch Actual state")
+	}
 
 	//reconcile current and desired
+	r.executeReconcile(actualState, desiredState)
 	return ctrl.Result{}, nil
 }
+func (r *KuberdonReconciler) executeReconcile(actualState State, desiredState State) error {
+	//masterSecretExists := actualState.MasterSecret.Name != ""
 
-func getActualState(ctx context.Context, registry v1beta1.Registry, client client.Client) (State, error) {
-	state := State{}
-	//fetch the master secret
-	if err := client.Get(ctx, namespacedName(registry.Spec.Secret), state.MasterSecret); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return State{}, err
-		}
-	}
-	//fetch the childSecrets
-
-	return state, nil
+	// diff desired namespace with actual namespace
+	return nil
 }
-
 
 func namespacedName(namespacedString string) types.NamespacedName {
 	namespacedName := types.NamespacedName{Name: namespacedString}
@@ -65,32 +96,7 @@ func namespacedName(namespacedString string) types.NamespacedName {
 	return namespacedName
 }
 
-func getChildSecretName(controllerName string, secretName string) string{
-	return fmt.Sprintf("kuberty-%s-%s", controllerName, secretName)
+
+func getChildSecretName(controllerName string, secretName string) string {
+	return fmt.Sprintf(childSecretNameFormat, controllerName, secretName)
 }
-//func handleSecretNotFound(ctx context.Context, r *KuberdonReconciler,registry v1beta1.Registry) (ctrl.Result, error) {
-//	ctx := context.Background()
-//	log := r.Log.WithValues("testresource", req.NamespacedName)
-//
-//	// Fetch the registry
-//	var registry v1beta1.Registry
-//	if err := r.Client.Get(ctx, req.NamespacedName, &registry); err != nil {
-//		log.Error(err, "Unable to fetch TestResource")
-//		return ctrl.Result{}, client.IgnoreNotFound(err)
-//	}
-//	// Fetch the secret
-//	var secret v1.Secret
-//	if err := r.Client.Get(ctx, registry.Spec.Secret, secret); err != nil {
-//		log.Error(err, "Unable to fetch Client Secret")
-//		if apierrors.IsNotFound(err){
-//
-//		}else {
-//			return ctrl.Result{}, err
-//		}
-//		return ctrl.Result{}, client.IgnoreNotFound(err)
-//
-//	}
-//
-//
-//	return ctrl.Result{}, nil
-//}
