@@ -17,12 +17,16 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
 
 	"github.com/go-logr/logr"
 	kuberdonv1beta1 "github.com/kuberty/kuberdon/api/v1beta1"
@@ -31,11 +35,65 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	childSecretNameFormat     = "kuberty-%s-%s"
+	nameField                 = "metadata.name"
+	defaultServiceAccountName = "default"
+)
+
+var (
+	faultyNamespaceRegexError   = "BadNamespaceFilterError"
+	faultyNamespaceRegexMessage = "%v namespaceFilters are not regex."
+	resolver                    = DefaultNamespaceResolver{}
+)
+
 // KuberdonReconciler reconciles a Kuberdon object
 type KuberdonReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
+}
+
+func (r *KuberdonReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	ctx := context.Background()
+	log := r.Log.WithValues("testresource", req.NamespacedName)
+
+	reconciliation := &Reconciliation{Client: r.Client, Context: ctx}
+
+	// Fetch the registry
+	if err := r.Client.Get(ctx, req.NamespacedName, &reconciliation.Registry); err != nil {
+		log.Error(err, "Unable to fetch Registry")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	//fetch all namespaces
+	if err := r.Client.List(ctx, &reconciliation.Namespaces); err != nil {
+		log.Error(err, "Unable to fetch namespaces")
+		return ctrl.Result{}, err
+	}
+
+	//fetch the actual and desired state
+	states, err := reconciliation.getActualAndDesiredState(resolver)
+	if err != nil {
+		log.Error(err, "Unable to fetch states")
+		return ctrl.Result{}, nil
+	}
+	//reconcile current and desired
+	r.executeReconcile(states.Actual, states.Desired)
+	return ctrl.Result{}, nil
+}
+
+func namespacedName(namespacedString string) types.NamespacedName {
+	namespacedName := types.NamespacedName{Name: namespacedString}
+	if strings.Contains(namespacedString, "/") {
+		sections := strings.Split(namespacedString, "/")
+		namespacedName.Namespace = sections[0]
+		namespacedName.Name = sections[1]
+	}
+	return namespacedName
+}
+
+func getChildSecretName(controllerName string, secretName string) string {
+	return fmt.Sprintf(childSecretNameFormat, controllerName, secretName)
 }
 
 // +kubebuilder:rbac:groups=kuberdon.kuberty.io,resources=kuberdons,verbs=get;list;watch;create;update;patch;delete

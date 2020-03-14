@@ -1,6 +1,5 @@
 package controllers
 
-
 import (
 	"github.com/kuberty/kuberdon/controllers/watchers"
 	v1 "k8s.io/api/core/v1"
@@ -30,7 +29,7 @@ func (s Reconciliation) getActualState() (State, error) {
 	for _, secret := range secrets.Items {
 		if _, ok := state.Namespaces[secret.Namespace]; !ok {
 			state.Namespaces[secret.Namespace] = &NamespaceState{ChildSecret: secret}
-		}else {
+		} else {
 			state.Namespaces[secret.Namespace].ChildSecret = secret
 		}
 
@@ -49,7 +48,7 @@ func (s Reconciliation) getActualState() (State, error) {
 			if imagePullSecret.Name == childSecretName {
 				if _, ok := state.Namespaces[serviceAccount.Namespace]; !ok {
 					state.Namespaces[serviceAccount.Namespace] = &NamespaceState{ServiceAcccount: serviceAccount}
-				}else {
+				} else {
 					state.Namespaces[serviceAccount.Namespace].ServiceAcccount = serviceAccount
 				}
 			}

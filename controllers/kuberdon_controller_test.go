@@ -7,9 +7,9 @@ import (
 )
 
 func TestGetChildSecretName(t *testing.T) {
-	testStringEquality(t, getChildSecretName("mycontroller", "somesecret"),"kuberty-mycontroller-somesecret")
-	testStringEquality(t, getChildSecretName("test-controller", "test-secret-2"),"kuberty-test-controller-test-secret-2")
-	testStringInequality(t, getChildSecretName("test-controller-", "test-secret-2"),"kuberty-test-controller-test-secret-2")
+	testStringEquality(t, getChildSecretName("mycontroller", "somesecret"), "kuberty-mycontroller-somesecret")
+	testStringEquality(t, getChildSecretName("test-controller", "test-secret-2"), "kuberty-test-controller-test-secret-2")
+	testStringInequality(t, getChildSecretName("test-controller-", "test-secret-2"), "kuberty-test-controller-test-secret-2")
 }
 
 func testStringEquality(t *testing.T, actual string, expected string) {

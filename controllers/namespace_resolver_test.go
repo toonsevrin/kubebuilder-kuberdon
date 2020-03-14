@@ -6,30 +6,30 @@ import (
 	"testing"
 )
 
-func TestDefaultResolver(t *testing.T){
+func TestDefaultResolver(t *testing.T) {
 	resolver := DefaultNamespaceResolver{}
 	res1, _ := resolver.resolve(
-		[]string{"namespace1","namespace2"},
-		[]v1beta1.NamespaceFilter{v1beta1.NamespaceFilter{Name:"*"}})
-	stringArraysEqual(t,res1, []string{"namespace1","namespace2"})
+		[]string{"namespace1", "namespace2"},
+		[]v1beta1.NamespaceFilter{v1beta1.NamespaceFilter{Name: "*"}})
+	stringArraysEqual(t, res1, []string{"namespace1", "namespace2"})
 
 	res2, _ := resolver.resolve(
-		[]string{"namespace1","namespace2"},
-		[]v1beta1.NamespaceFilter{v1beta1.NamespaceFilter{Name:"*1"}})
-	stringArraysEqual(t,res2, []string{"namespace1"})
+		[]string{"namespace1", "namespace2"},
+		[]v1beta1.NamespaceFilter{v1beta1.NamespaceFilter{Name: "*1"}})
+	stringArraysEqual(t, res2, []string{"namespace1"})
 
 	res3, _ := resolver.resolve(
-		[]string{"namespace1","namespace2"},
-		[]v1beta1.NamespaceFilter{v1beta1.NamespaceFilter{Name:".*2"}})
-	stringArraysEqual(t,res3, []string{"namespace2"})
+		[]string{"namespace1", "namespace2"},
+		[]v1beta1.NamespaceFilter{v1beta1.NamespaceFilter{Name: ".*2"}})
+	stringArraysEqual(t, res3, []string{"namespace2"})
 
 	res4, _ := resolver.resolve(
-		[]string{"asdnamespace1","bdsnamespace2", "asd3"},
-		[]v1beta1.NamespaceFilter{v1beta1.NamespaceFilter{Name:"*namespace*"}})
-	stringArraysEqual(t,res4, []string{"asdnamespace1", "bdsnamespace2"})
+		[]string{"asdnamespace1", "bdsnamespace2", "asd3"},
+		[]v1beta1.NamespaceFilter{v1beta1.NamespaceFilter{Name: "*namespace*"}})
+	stringArraysEqual(t, res4, []string{"asdnamespace1", "bdsnamespace2"})
 }
 
-func stringArraysEqual(t *testing.T, actual []string, expected []string){
+func stringArraysEqual(t *testing.T, actual []string, expected []string) {
 	if !reflect.DeepEqual(expected, actual) {
 		t.Error("Expectation", expected, "does not equal actual", actual)
 	}
