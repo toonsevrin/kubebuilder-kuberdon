@@ -70,6 +70,7 @@ spec:
               enum:
               - Synced
               - ErrorSecretNotFound
+              - UnexpectedError
               type: string
           type: object
       type: object

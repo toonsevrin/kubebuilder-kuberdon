@@ -19,26 +19,34 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
+	kuberdonv1beta1 "github.com/kuberty/kuberdon/api/v1beta1"
+	"github.com/kuberty/kuberdon/controllers/watchers"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
-
-	"github.com/go-logr/logr"
-	kuberdonv1beta1 "github.com/kuberty/kuberdon/api/v1beta1"
-	"github.com/kuberty/kuberdon/controllers/watchers"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 )
 
 const (
-	childSecretNameFormat     = "kuberty-%s-%s"
+	childSecretPrefix = "kuberty-%s"
+	childSecretNameFormat     = childSecretPrefix + "-%s"
 	nameField                 = "metadata.name"
 	defaultServiceAccountName = "default"
+)
+
+const (
+	SyncedState = "Synced"
+	SyncedMessage = "All secrets deployed"
+	ErrorState = "Error"
+	ErrorMessage = "Error %v: retrying..."
 )
 
 var (
@@ -75,15 +83,33 @@ func (r *KuberdonReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	states, err := reconciliation.getActualAndDesiredState(resolver)
 	if err != nil {
 		log.Error(err, "Unable to fetch states")
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 	//reconcile current and desired
-	r.executeReconcile(states.Actual, states.Desired)
+	err = r.executeReconcile(ctx, states.Actual, states.Desired)
+	if err != nil {
+		log.Error(err, "Unable to execute reconciliation")
+		newReg := reconciliation.Registry.DeepCopy()
+		newReg.Status = kuberdonv1beta1.RegistryStatus{State: kuberdonv1beta1.ErrorState, Message:fmt.Sprintf(ErrorMessage, err)}
+		if err2 := r.Status().Update(ctx, newReg); err2 != nil {
+			log.Error(err2, "Unable to update status")
+			return ctrl.Result{Requeue:true}, err2
+		}
+		return ctrl.Result{Requeue:true,RequeueAfter: time.Second * 10}, err
+	}
+	if reconciliation.Registry.Status.State != kuberdonv1beta1.SyncedState {
+		newReg := reconciliation.Registry.DeepCopy()
+		newReg.Status = kuberdonv1beta1.RegistryStatus{State: kuberdonv1beta1.SyncedState, Message:SyncedMessage}
+		if err := r.Status().Update(ctx, newReg); err != nil {
+			log.Error(err, "Unable to update status")
+			return ctrl.Result{Requeue:true}, err
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
 func namespacedName(namespacedString string) types.NamespacedName {
-	namespacedName := types.NamespacedName{Name: namespacedString}
+	namespacedName := types.NamespacedName{Namespace: "default", Name: namespacedString}
 	if strings.Contains(namespacedString, "/") {
 		sections := strings.Split(namespacedString, "/")
 		namespacedName.Namespace = sections[0]
@@ -108,10 +134,8 @@ func (r *KuberdonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Watchers watch the kubernetes API for changes, they are defined in watchers/watchers.go.
 	// Whenever the master secret (the one that gets deployed) or the child secrets (the ones that are deployed) change,
 	// the reconcile function will be called for the relevant Registries.
-	watchers := []watchers.Watcher{
-		watchers.MasterSecretWatcher{Client: r.Client, Log: r.Log},
-		watchers.ChildSecretWatcher{},
-	}
+	watchersProvider := watchers.AllWatchers{Client: r.Client, Log: r.Log}
+	watchers := watchersProvider.GetWatchers()
 
 	// Let's add the watchers to the manager and the builder.
 	for _, watcher := range watchers {
@@ -119,12 +143,12 @@ func (r *KuberdonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		if err != nil {
 			return err
 		}
-
 		builder = builder.Watches(&source.Informer{Informer: informer}, &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(watcher.ToRequestsFunc)})
 	}
 
 	return builder.Complete(r)
 }
+
 
 func addWatcherToMgr(mgr ctrl.Manager, clientSet *kubernetes.Clientset, watcher watchers.Watcher) (cache.Informer, error) {
 	informerFactory, informer := watcher.Informer(clientSet)

@@ -53,12 +53,14 @@ type NamespaceFilter struct {
 const (
 	// The registry secret is deployed to all relevant service accounts
 	SyncedState State = "Synced"
+	// An unexpected error occured
+	ErrorState State = "UnexpectedError"
 	// The source secret was not found
 	secretNotFoundState State = "ErrorSecretNotFound"
 )
 
 // Describes the state of the resource
-// +kubebuilder:validation:Enum=Synced;ErrorSecretNotFound
+// +kubebuilder:validation:Enum=Synced;ErrorSecretNotFound;UnexpectedError
 type State string
 
 // RegistryStatus defines the observed state of Kuberdon.

@@ -1,7 +1,6 @@
 apiVersion: kuberdon.kuberty.io/v1beta1
-kind: Kuberdon
+kind: Registry
 metadata:
-  name: kuberdon-sample
+  name: registry-sample
 spec:
-  # Add fields here
-  foo: bar
+  secret: registry-secret
